@@ -62,3 +62,45 @@ pnpm dev
 ```
 
 You should now be able to access the application at http://localhost:3000.
+
+## MacroBrief Additions
+
+This template is extended with a one-page, dark-themed market dashboard (MacroBrief) available at `/dashboard`.
+
+### Run locally
+
+1. Create `.env.local` in the project root with:
+
+```
+DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+NEXTAUTH_SECRET=changeme
+NEXTAUTH_URL=http://localhost:3000
+
+FINNHUB_API_KEY=pk_...your_finnhub_key...
+```
+
+2. Install deps and start dev server:
+
+```
+pnpm install
+pnpm dev
+```
+
+Then open `http://localhost:3000/dashboard`.
+
+### API routes
+
+All routes are server-side, cache for 60s, and respond with `{ updated, data }`:
+
+- `GET /api/index-movements` – S&P 500, NASDAQ, DOW (Yahoo Finance)
+- `GET /api/mag7` – AAPL, MSFT, AMZN, GOOGL, META, TSLA, NVDA (Yahoo Finance)
+- `GET /api/currencies` – DXY, EUR/USD, USD/JPY, GBP/USD (Yahoo Finance)
+- `GET /api/commodities` – Gold, WTI Oil, Nat Gas, Corn (Yahoo Finance)
+- `GET /api/crypto` – BTC, ETH spot (Yahoo Finance)
+- `GET /api/news` – General news (Finnhub) or `?symbol=XYZ` for company news
+
+### Extend
+
+- Cards live in `components/cards/*` and fetch from `app/api/*` via React Query.
+- Add more cards by creating a client component and a route under `app/api/*`.
+# MarketBrief
