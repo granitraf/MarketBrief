@@ -14,7 +14,11 @@ import {
 import { count, eq, ilike } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 
-export const db = drizzle(neon(process.env.POSTGRES_URL!));
+// Make database optional for local MacroBrief; only initialize if POSTGRES_URL is set
+const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
+export const db = connectionString
+  ? drizzle(neon(connectionString))
+  : (null as unknown as ReturnType<typeof drizzle>);
 
 export const statusEnum = pgEnum('status', ['active', 'inactive', 'archived']);
 
@@ -53,6 +57,10 @@ export async function getProducts(
   }
 
   if (offset === null) {
+    return { products: [], newOffset: null, totalProducts: 0 };
+  }
+
+  if (!db) {
     return { products: [], newOffset: null, totalProducts: 0 };
   }
 

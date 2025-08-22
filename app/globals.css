@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Shared utilities for MacroBrief UI */
+@layer components {
+  /* Unify ticker typography across cards */
+  .ticker-symbol {
+    @apply font-medium text-sm whitespace-nowrap;
+  }
+  /* Price typography to match MAG7 */
+  .price-value {
+    @apply text-sm text-zinc-200 tabular-nums tracking-tight whitespace-nowrap;
+  }
+  /* Spacing and layout for pill rows */
+  .bubble-list {
+    @apply grid grid-cols-1 gap-2;
+  }
+  .bubble-pill {
+    @apply bg-zinc-800 rounded-lg px-3 py-2 flex items-center justify-between;
+  }
+  /* Canonical names used across cards */
+  .row-pill { @apply bubble-pill; }
+  .row-gap { @apply gap-2; }
+  .delta-badge {
+    @apply text-xs px-2 py-0.5 rounded-full tabular-nums;
+  }
+  .pct-badge { @apply delta-badge; }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -89,4 +115,14 @@ input[type='search']::-moz-search-cancel-button {
 /* Microsoft Edge */
 input[type='search']::-ms-clear {
   display: none;
+}
+
+/* Hide TradingView watermark */
+.tv-lightweight-charts a[href*="tradingview.com"],
+[class*="tv-watermark"],
+[class*="watermark"] a[href*="tradingview"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

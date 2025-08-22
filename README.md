@@ -104,3 +104,5 @@ All routes are server-side, cache for 60s, and respond with `{ updated, data }`:
 - Cards live in `components/cards/*` and fetch from `app/api/*` via React Query.
 - Add more cards by creating a client component and a route under `app/api/*`.
 # MarketBrief
+
+hello
