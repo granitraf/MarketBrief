@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createChart, ColorType } from "lightweight-charts";
 
-type RangeKey = "1D"|"5D"|"1M"|"3M"|"6M"|"YTD"|"1YR"|"5YR"|"MAX";
+type RangeKey = "1D"|"5D"|"1M"|"3M"|"6M"|"YTD"|"1Y"|"1YR"|"5Y"|"5YR"|"MAX";
 
 export interface RangeStats {
   oldPrice: number|null;
@@ -63,7 +63,7 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
   const wrapRef   = React.useRef<HTMLDivElement|null>(null);
   const chartRef  = React.useRef<any>(null);
   const areaRef   = React.useRef<any>(null);
-  const unsubRef  = React.useRef<() => void>();
+  const unsubRef  = React.useRef<(() => void) | undefined>(undefined);
 
   React.useEffect(() => {
     if (!wrapRef.current) return;
@@ -86,7 +86,7 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
         borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time, tickType, locale) => {
+        tickMarkFormatter: (time: any, tickType: any, locale: any) => {
           // time is number (unix seconds) for intraday or {year,month,day} for daily+
           if (typeof time === "number") {
             return fmtTimeIntraday.format(new Date(time * 1000));
@@ -125,7 +125,7 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
     const intraday = isIntraday(range);
 
     (async () => {
-      const normRange = range === "1Y" ? ("1YR" as RangeKey) : range === "5Y" ? ("5YR" as RangeKey) : range;
+      const normRange = range === "1Y" ? "1YR" : range === "5Y" ? "5YR" : range;
       const r = await fetch(`/api/twelvedata/candles/${encodeURIComponent(symbol)}/${normRange}`, { cache: "no-store" });
       const j = await r.json();
       const candles = Array.isArray(j?.candles) ? j.candles : [];
@@ -135,7 +135,7 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
       let filtered = candles;
       if (isIntradayRange) {
         // our intraday times are unix seconds
-        filtered = candles.filter(c => typeof c.time === "number" && inRegularSessionNY(c.time));
+        filtered = candles.filter((c: any) => typeof c.time === "number" && inRegularSessionNY(c.time));
       }
 
       // set data from filtered not raw:
@@ -143,7 +143,7 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
       areaRef.current?.setData(lineData);
 
       // Implement clean y-axis with tight scaling and 2-decimal formatting
-      const values = lineData.map(p => p.value);
+      const values = lineData.map((p: any) => p.value);
       if (values.length) {
         const min = Math.min(...values);
         const max = Math.max(...values);
@@ -166,8 +166,27 @@ export default function LineChart({ symbol, range, livePrice, onStats, className
       areaRef.current?.applyOptions({ topColor, bottomColor, lineColor });
 
       // adjust timeVisible for intraday vs daily
-      chartRef.current?.applyOptions({ timeScale: { timeVisible: isIntradayRange, secondsVisible: false } });
+      chartRef.current?.applyOptions({ 
+        timeScale: { 
+          timeVisible: isIntradayRange, 
+          secondsVisible: false,
+          barSpacing: isIntradayRange && range === "5D" ? 3 : 6,
+          rightOffset: 10,
+          fixLeftEdge: false,
+          fixRightEdge: false
+        } 
+      });
       chartRef.current?.timeScale().fitContent();
+      
+      // Ensure the latest data point is visible
+      if (lineData.length > 0) {
+        const firstTime = lineData[0].time;
+        const lastTime = lineData[lineData.length - 1].time;
+        chartRef.current?.timeScale().setVisibleRange({
+          from: firstTime,
+          to: lastTime
+        });
+      }
 
       // zoom & pan disabled, no subscription needed
       if (unsubRef.current) unsubRef.current();

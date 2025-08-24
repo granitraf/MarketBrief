@@ -13,16 +13,45 @@ function atMidnightTZ(d: Date) { const z = new Date(d); z.setUTCHours(0,0,0,0); 
 function daysAgo(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return atMidnightTZ(d); }
 function startOfToday() { return atMidnightTZ(new Date()); }
 
+// Get current time in America/New_York timezone as epoch ms
+function getNowET(): number {
+  const now = new Date();
+  const nyTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  return nyTime.getTime();
+}
+
+// Get cache key that includes time-based components to avoid "yesterday lock-in"
+function getCacheKey(symbol: string, range: RangeKey, interval: string): string {
+  const nowET = getNowET();
+  const intervalMs = getIntervalMs(interval);
+  const timeSlot = Math.floor(nowET / intervalMs);
+  return `${symbol}|${range}|${interval}|${timeSlot}`;
+}
+
+// Get interval duration in milliseconds
+function getIntervalMs(interval: string): number {
+  switch (interval) {
+    case "1min": return 60 * 1000;
+    case "15min": return 15 * 60 * 1000;
+    case "1day": return 24 * 60 * 60 * 1000;
+    case "1week": return 7 * 24 * 60 * 60 * 1000;
+    case "1month": return 30 * 24 * 60 * 60 * 1000;
+    default: return 60 * 1000;
+  }
+}
+
 function cfgFor(range: RangeKey) {
   const y = new Date().getUTCFullYear();
+  const now = new Date();
+  
   switch (range) {
-    case "1D":  return { interval:"5min",   start: startOfToday(),            intraday:true } as const;
-    case "5D":  return { interval:"15min",  start: daysAgo(14),               intraday:true } as const;
-    case "1M":  return { interval:"1day",   start: daysAgo(45),               intraday:false } as const;
-    case "3M":  return { interval:"1day",   start: daysAgo(110),              intraday:false } as const;
-    case "6M":  return { interval:"1day",   start: daysAgo(220),              intraday:false } as const;
+    case "1D":  return { interval:"1min",   start: startOfToday(),            end: now, intraday:true } as const;
+    case "5D":  return { interval:"15min",  start: daysAgo(7),                end: now, intraday:true } as const;
+    case "1M":  return { interval:"1day",   start: daysAgo(35),               end: now, intraday:false } as const;
+    case "3M":  return { interval:"1day",   start: daysAgo(100),              intraday:false } as const;
+    case "6M":  return { interval:"1day",   start: daysAgo(200),              intraday:false } as const;
     case "YTD": return { interval:"1day",   start: new Date(Date.UTC(y,0,1)), intraday:false } as const;
-    case "1YR": return { interval:"1day",   start: daysAgo(400),              intraday:false } as const;
+    case "1YR": return { interval:"1day",   start: daysAgo(380),              intraday:false } as const;
     case "5YR": return { interval:"1week",  start: daysAgo(5*365+30),         intraday:false } as const;
     case "MAX": return { interval:"1month", start: daysAgo(20*365),           intraday:false } as const;
   }
@@ -34,26 +63,38 @@ export async function GET(_req: Request, ctx: { params: Promise<{ symbol:string;
   const rk = (rawRange || "").toUpperCase() as RangeKey;
   const cfg = cfgFor(rk);
   if (!symbol || !cfg) return NextResponse.json({ error:"bad params", candles:[] }, { status:400 });
-  const cacheKey = `${symbol}|${rk}`;
+  
+  // Use time-based cache key to avoid "yesterday lock-in"
+  const cacheKey = getCacheKey(symbol, rk, cfg.interval);
 
   try {
-    const end = new Date();
+    const end = cfg.end as Date;
     const start = cfg.start as Date;
+    
+    // For intraday ranges, use full timestamps to preserve today's partial data
+    // For daily ranges, extend end date by 24h to ensure today's data is included
+    const endDate = cfg.intraday ? end : new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    
     const params:any = {
       symbol,
       interval: cfg.interval,
       start_date: start.toISOString().slice(0,10),
-      end_date: end.toISOString().slice(0,10),
+      end_date: endDate.toISOString().slice(0,10),
       timezone: EX_TZ,
       order: "ASC",
       outputsize: 5000
     };
+    
     let j = await td("/time_series", params, 60);
     let values = Array.isArray((j as any)?.values) ? (j as any).values : [];
     values.sort((a:any,b:any)=> new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
     values = values.filter((v:any, i:number)=> i===0 || v.datetime !== values[i-1].datetime);
-    const cutoffMs = start.getTime();
-    values = values.filter((v:any)=> new Date(v.datetime).getTime() >= cutoffMs);
+    
+    // Don't filter by start cutoff for intraday ranges to preserve today's partial data
+    if (!cfg.intraday) {
+      const cutoffMs = start.getTime();
+      values = values.filter((v:any)=> new Date(v.datetime).getTime() >= cutoffMs);
+    }
 
     // For 5D, restrict to the last 5 distinct trading session dates (in exchange timezone)
     if (rk === "5D" && values.length) {
@@ -73,7 +114,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ symbol:string;
     })).filter((c:any) => [c.open,c.high,c.low,c.close].every(Number.isFinite));
 
     if (candles.length === 0 && rk === "1D") {
-      const j2 = await td("/time_series", { symbol, interval:"15min", start_date: params.start_date, end_date: params.end_date, timezone: EX_TZ, order:"ASC", outputsize:2000 }, 60);
+      const j2 = await td("/time_series", { symbol, interval:"1min", start_date: params.start_date, end_date: params.end_date, timezone: EX_TZ, order:"ASC", outputsize:2000 }, 60);
       const v2 = Array.isArray((j2 as any)?.values) ? (j2 as any).values : [];
       v2.sort((a:any,b:any)=> new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
       const cutoff = start.getTime();
@@ -84,17 +125,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ symbol:string;
       })).filter((c:any) => [c.open,c.high,c.low,c.close].every(Number.isFinite));
     }
 
-    // cache successful response
+    // cache successful response with time-based cache key
     cache.set(cacheKey, { t: Date.now(), candles, range: rk });
-    return NextResponse.json({ range: rk, candles }, {
-      headers:{ "Cache-Control":"s-maxage=60, stale-while-revalidate=300" }
+    return NextResponse.json({ range: rk, candles, updated: Date.now() }, {
+      headers:{ "Cache-Control":"s-maxage=30, stale-while-revalidate=150" }
     });
   } catch (e:any) {
     // Fallback: Yahoo Finance if Twelve Data fails (e.g., rate limit)
     try {
       const ym = (rk:RangeKey) => {
         switch (rk) {
-          case "1D":  return { range: "1d",  interval: "5m",  intraday:true  };
+          case "1D":  return { range: "1d",  interval: "1m",  intraday:true  };
           case "5D":  return { range: "5d",  interval: "15m", intraday:true  };
           case "1M":  return { range: "1mo", interval: "1d",  intraday:false };
           case "3M":  return { range: "3mo", interval: "1d",  intraday:false };
@@ -116,10 +157,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ symbol:string;
         const O = q.open || [], H = q.high || [], L = q.low || [], C = q.close || [], V = q.volume || [];
         const candles = ts.map((t:number,i:number)=>({
           time: ycfg.intraday ? t : toBizFromISO(new Date(t*1000).toISOString()),
-          open: O[i], high: H[i], low: L[i], close: C[i], volume: V[i]
+          open: Number(O[i] || 0), high: Number(H[i] || 0), low: Number(L[i] || 0), close: Number(C[i] || 0),
+          volume: Number(V[i] || 0)
         })).filter((c:any) => [c.open,c.high,c.low,c.close].every(Number.isFinite));
         cache.set(cacheKey, { t: Date.now(), candles, range: rk });
-        return NextResponse.json({ provider: "yahoo", range: rk, candles }, { headers:{ "Cache-Control":"s-maxage=30" }});
+        return NextResponse.json({ provider: "yahoo", range: rk, candles, updated: Date.now() }, { headers:{ "Cache-Control":"s-maxage=30" }});
       }
     } catch {}
     const hit = cache.get(cacheKey);
