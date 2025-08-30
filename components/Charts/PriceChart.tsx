@@ -145,9 +145,11 @@ export default function PriceChart({
 
   // Calculate stats for parent component
   React.useEffect(() => {
-    if (onStats && series.data.length >= 2) {
-      const firstPrice = series.data[0]?.value;
-      const lastPrice = series.data[series.data.length - 1]?.value;
+    if (onStats && chartData.length >= 2) {
+      const first = chartData.find(d => typeof d.value === 'number');
+      const last = [...chartData].reverse().find(d => typeof d.value === 'number');
+      const firstPrice = first?.value;
+      const lastPrice = last?.value;
       
       if (typeof firstPrice === 'number' && typeof lastPrice === 'number') {
         const abs = lastPrice - firstPrice;
@@ -161,7 +163,19 @@ export default function PriceChart({
         });
       }
     }
-  }, [series.data, onStats]);
+  }, [chartData, onStats]);
+
+  // Compute dynamic line color based on overall return for the period
+  const lineColor = React.useMemo(() => {
+    if (!chartData || chartData.length < 2) return '#10B981';
+    const first = chartData.find(d => typeof d.value === 'number' && isFinite(d.value));
+    const last = [...chartData].reverse().find(d => typeof d.value === 'number' && isFinite(d.value));
+    const firstValue = first?.value;
+    const lastValue = last?.value;
+    if (firstValue == null || lastValue == null) return '#10B981';
+    if (firstValue === 0) return '#10B981';
+    return lastValue < firstValue ? '#EF4444' : '#10B981';
+  }, [chartData]);
 
   // Handle empty data
   if (!data || data.length === 0) {
@@ -309,7 +323,7 @@ export default function PriceChart({
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#10B981"
+            stroke={lineColor}
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4, fill: "#10B981" }}

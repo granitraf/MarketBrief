@@ -162,13 +162,6 @@ export default function RoiOverlay({
   // Global pointer handlers to avoid blocking Recharts hover when not dragging
   React.useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
-      // Prevent text selection and enable drag UX
-      if (e.cancelable) e.preventDefault();
-      document.body.style.userSelect = 'none';
-      // @ts-ignore
-      document.body.style.webkitUserSelect = 'none';
-      document.body.classList.add('roi-dragging');
-
       if (!rootRef.current || fx.length === 0) return;
       const rect = rootRef.current.getBoundingClientRect();
       const px = e.clientX - rect.left;
@@ -191,6 +184,12 @@ export default function RoiOverlay({
       }
 
       const idx = nearestIndexFromPixelX(px, fx);
+      // Prevent text selection ONLY when starting an actual drag in middle zone
+      if (e.cancelable) e.preventDefault();
+      document.body.style.userSelect = 'none';
+      // @ts-ignore
+      document.body.style.webkitUserSelect = 'none';
+      document.body.classList.add('roi-dragging');
       setActive(true);
       setStartIdx(idx);
       setEndIdx(idx);
@@ -424,7 +423,7 @@ export default function RoiOverlay({
   return (
     <div
       ref={rootRef}
-      style={{ position:'absolute', inset:0, pointerEvents:'none' }}
+      style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:10, contain:'layout' }}
     >
       {/* Edge zone visual indicators */}
       {currentZone === 'left' && (
