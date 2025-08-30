@@ -192,6 +192,26 @@ export function usePriceSeries({ data, range, livePrice, dataInterval }: UsePric
       ts: timestampLookup?.get(point.t) // Include original timestamp for 5D
     }));
     
+    // For 1D charts, filter out any invalid data points
+    if (range === "1D") {
+      const beforeFilter = transformedData.length;
+      const filteredData = transformedData.filter(point => {
+        const isValid = point.value > 0 && !isNaN(point.value) && isFinite(point.value);
+        if (!isValid) {
+          console.warn('Filtered invalid 1D data point:', point);
+        }
+        return isValid;
+      });
+      
+      if (beforeFilter !== filteredData.length) {
+        console.log(`1D: Filtered ${beforeFilter - filteredData.length} invalid data points`);
+      }
+      
+      // Replace the transformed data with filtered data
+      Object.assign(transformedData, filteredData);
+      transformedData.length = filteredData.length;
+    }
+    
     const timeLabels = processedData.map(point => {
       if (range === "5D" && timestampLookup) {
         // For 5D, use the original timestamp for formatting
@@ -202,8 +222,36 @@ export function usePriceSeries({ data, range, livePrice, dataInterval }: UsePric
 
     // Calculate price range and generate ticks
     const prices = transformedData.map(point => point.value);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
+    
+    // For 1D charts, filter out invalid prices for Y-domain calculation
+    let minPrice: number, maxPrice: number;
+    
+    if (range === "1D") {
+      const validPrices = prices.filter(price => price > 0 && !isNaN(price) && isFinite(price));
+      
+      if (validPrices.length === 0) {
+        console.warn(`No valid prices found for 1D chart`);
+        // Return fallback data with reasonable defaults
+        return {
+          data: [],
+          timeLabels: [],
+          priceLabels: ['0'],
+          yDomain: [0, 100] as [number, number],
+          tickStep: 10,
+          range,
+          isIntraday,
+          dataInterval: effectiveInterval,
+          timestampLookup
+        };
+      }
+      
+      minPrice = Math.min(...validPrices);
+      maxPrice = Math.max(...validPrices);
+    } else {
+      // For other ranges, use all prices as before
+      minPrice = Math.min(...prices);
+      maxPrice = Math.max(...prices);
+    }
 
     // Handle flat line case
     if (minPrice === maxPrice) {
@@ -263,6 +311,12 @@ export function useChartData(
       return series.data;
     }
 
+    // Validate livePrice - must be a positive number
+    if (livePrice <= 0 || !isFinite(livePrice)) {
+      console.warn(`Invalid livePrice for ${range}:`, livePrice);
+      return series.data;
+    }
+
     const lastPoint = series.data[series.data.length - 1];
     const lastTimestamp = series.timestampLookup?.get(lastPoint.time) || lastPoint.time;
     const lastDate = new Date(lastTimestamp);
@@ -271,7 +325,28 @@ export function useChartData(
     // Check if the last data point is from today
     const isLastPointFromToday = lastDate.toDateString() === today.toDateString();
     
-    // Always add live price if it's significantly different, regardless of range
+    // For 1D charts, be more strict about live price updates
+    if (range === "1D") {
+      // Only add live price if it's significantly different AND valid
+      if (Math.abs(lastPoint.value - livePrice) > 0.001 && livePrice > 0) {
+        const livePoint = { 
+          time: series.data.length, // Use next ordinal index
+          value: livePrice,
+          ts: Date.now() // Current timestamp for live data
+        };
+        
+        console.log(`Adding valid live price update for 1D: $${livePrice} at ${new Date().toLocaleString("en-US", {timeZone: "America/New_York"})}`);
+        
+        return [
+          ...series.data,
+          livePoint
+        ];
+      }
+      // For 1D, return original data if live price is invalid or not significantly different
+      return series.data;
+    }
+    
+    // For other ranges, add live price if it's significantly different
     if (Math.abs(lastPoint.value - livePrice) > 0.001) {
       const livePoint = { 
         time: series.data.length, // Use next ordinal index

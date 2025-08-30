@@ -72,6 +72,20 @@ export default function Chart() {
     });
   };
 
+  // Validate livePrice specifically for 1D charts to prevent $0.00 data points
+  const validatedLivePrice = useMemo(() => {
+    if (range === "1D") {
+      // For 1D, be strict about live price validation
+      if (!livePrice || livePrice <= 0 || !isFinite(livePrice)) {
+        console.warn(`Invalid livePrice for 1D chart:`, livePrice);
+        return null;
+      }
+      return livePrice;
+    }
+    // For other ranges, pass through as before
+    return livePrice;
+  }, [livePrice, range]);
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-xs">
@@ -99,9 +113,10 @@ export default function Chart() {
           <PriceChart
             data={chartData}
             range={range}
-            livePrice={livePrice}
+            livePrice={validatedLivePrice}
             height={320}
             onStats={handleStats}
+            enableROI={true}
           />
         )}
       </div>

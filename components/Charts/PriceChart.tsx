@@ -13,6 +13,8 @@ import {
 import { usePriceSeries, type PricePoint, type RangeKey } from '../../hooks/usePriceSeries';
 import { formatTime, formatPriceForTooltip, formatDateOnly } from '../../lib/formatters';
 import { getRangeConfig, getOptimalTickCount, getDataInterval } from '../../lib/ranges';
+import RoiOverlay from './RoiOverlay';
+import '../../styles/chart-roi.css';
 
 interface PriceChartProps {
   data: PricePoint[];
@@ -21,6 +23,7 @@ interface PriceChartProps {
   height?: number;
   className?: string;
   onStats?: (stats: { oldPrice: number | null; newPrice: number | null; abs: number | null; pct: number | null }) => void;
+  enableROI?: boolean;
 }
 
 export default function PriceChart({
@@ -29,7 +32,8 @@ export default function PriceChart({
   livePrice,
   height = 360,
   className = "",
-  onStats
+  onStats,
+  enableROI = false
 }: PriceChartProps) {
   // Get the data interval for this range
   const dataInterval = useMemo(() => getDataInterval(range), [range]);
@@ -105,8 +109,6 @@ export default function PriceChart({
         }
       }
       
-      console.log('5D X-axis tick indices:', tickIndices);
-      
       return {
         tickCount: 5,
         ticks: tickIndices,
@@ -179,8 +181,58 @@ export default function PriceChart({
     );
   }
 
+  // ROI wiring values
+  const xMode = range === '5D' ? 'ordinal' : 'timestamp';
+  const xDomain: [number, number] = xMode === 'ordinal'
+    ? [0, Math.max(0, series.data.length - 1)]
+    : ['dataMin' as any, 'dataMax' as any];
+  // For timestamp mode, get actual numeric domain from data
+  let numericXDomain: [number, number] = [0, 1];
+  if (xMode === 'timestamp') {
+    const times = series.data.map(d => d.time);
+    numericXDomain = [Math.min(...times), Math.max(...times)];
+  }
+
+  // Get actual container dimensions for plotBox
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [plotBox, setPlotBox] = React.useState({
+    width: 0, height: 0,
+    paddingLeft: 20, paddingRight: 30, paddingTop: 20, paddingBottom: 20
+  });
+  const [suppressTooltip, setSuppressTooltip] = React.useState(false);
+
+  React.useEffect(() => {
+    if (containerRef.current) {
+      const updatePlotBox = () => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect && rect.width > 0 && rect.height > 0) {
+          setPlotBox(prev => ({
+            ...prev,
+            width: rect.width,
+            height: rect.height
+          }));
+        }
+      };
+      
+      // Initial update
+      updatePlotBox();
+      
+      // Set up resize observer
+      const resizeObserver = new ResizeObserver(updatePlotBox);
+      resizeObserver.observe(containerRef.current);
+      
+      // Also update on next frame to ensure dimensions are set
+      const timeoutId = setTimeout(updatePlotBox, 100);
+      
+      return () => {
+        resizeObserver.disconnect();
+        clearTimeout(timeoutId);
+      };
+    }
+  }, []);
+
   return (
-    <div className={`w-full ${className}`} style={{ height }}>
+    <div ref={containerRef} className={`w-full select-none ${className}`} style={{ position:'relative', height }}>
       <ResponsiveContainer width="100%" height="100%">
         <RechartsLineChart
           data={chartData}
@@ -220,37 +272,39 @@ export default function PriceChart({
             width={60}
           />
           
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (active && payload && payload.length) {
-                const data = payload[0].payload;
-                let time: string;
-                
-                if (range === "5D" && series.timestampLookup) {
-                  // For 5D, use the timestamp lookup to get the real time
-                  const timestamp = series.timestampLookup.get(data.time);
-                  if (timestamp) {
-                    time = formatTime(range, timestamp);
+          {!suppressTooltip && (
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  let time: string;
+                  
+                  if (range === "5D" && series.timestampLookup) {
+                    const timestamp = series.timestampLookup.get(data.time);
+                    if (timestamp) {
+                      time = formatTime(range, timestamp);
+                    } else {
+                      time = data.timeLabel || '';
+                    }
                   } else {
-                    time = data.timeLabel || '';
+                    time = formatTime(range, data.time);
                   }
-                } else {
-                  // For other ranges, format the timestamp
-                  time = formatTime(range, data.time);
-                }
-                
-                return (
-                  <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 shadow-lg">
-                    <div className="text-sm text-zinc-300">{time}</div>
-                    <div className="text-lg font-semibold text-white">
-                      ${Number(data.value).toFixed(2)}
+                  
+                  return (
+                    <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 shadow-lg">
+                      <div className="text-sm text-zinc-300">{time}</div>
+                      <div className="text-lg font-semibold text-white">
+                        ${Number(data.value).toFixed(2)}
+                      </div>
                     </div>
-                  </div>
-                );
-              }
-              return null;
-            }}
-          />
+                  );
+                }
+                return null;
+              }}
+              cursor={{ stroke: '#4B5563', strokeWidth: 1 }}
+              isAnimationActive={false}
+            />
+          )}
           
           <Line
             type="monotone"
@@ -264,6 +318,24 @@ export default function PriceChart({
           />
         </RechartsLineChart>
       </ResponsiveContainer>
+
+      {enableROI && plotBox.width > 0 && plotBox.height > 0 && series.data.length > 0 && (
+        <RoiOverlay
+          series={series.data.map((d, index) => ({ 
+            t: xMode === 'timestamp' ? d.time : undefined, 
+            x: xMode === 'ordinal' ? index : undefined, 
+            ts: series.timestampLookup?.get(d.time) || d.time, 
+            c: d.value 
+          }))}
+          xMode={xMode}
+          xDomain={xMode === 'ordinal' ? [0, Math.max(0, series.data.length - 1)] : numericXDomain}
+          yDomain={series.yDomain}
+          plotBox={plotBox}
+          rangeKey={range}
+          tooltipClassName="bg-zinc-800 border border-zinc-700 rounded-lg p-2 shadow roi-pill"
+          onSuppress={(s:boolean) => setSuppressTooltip(s)}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,20 @@
+.roi-connector{stroke:currentColor;opacity:.6;stroke-width:1}
+.roi-dot{fill:currentColor}
+.roi-pill{pointer-events:none}
+
+/* Prevent text selection on axis labels */
+.recharts-cartesian-axis-tick-value{
+  user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none
+}
+.recharts-text{
+  user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none
+}
+
+/* Global prevent selection during ROI drag */
+.roi-dragging, .roi-dragging *{
+  user-select:none !important;-webkit-user-select:none !important;-moz-user-select:none !important;-ms-user-select:none !important
+}
+
+/* Ensure overlay handles touch without panning/zooming */
+.roi-overlay-svg{touch-action:none}
+
