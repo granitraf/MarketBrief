@@ -24,8 +24,13 @@ export default function TickerSearchInput({
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [listId, setListId] = useState('ticker-list-ssr');
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const listId = useMemo(() => `ticker-list-${Math.random().toString(36).slice(2)}`, []);
+
+  // Generate unique ID only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setListId(`ticker-list-${Math.random().toString(36).slice(2)}`);
+  }, []);
 
   // keep controlled if parent passes value
   useEffect(() => setQ(value), [value]);

@@ -1,7 +1,37 @@
 'use client';
 
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, Variants } from 'framer-motion';
 import { useRef } from 'react';
+
+// Use a cubic-bezier tuple (valid Easing for framer-motion)
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+// Helper to build consistent variant shapes (both x and y present)
+const makeVariants = (
+  direction: 'top' | 'bottom' | 'left' | 'right' = 'bottom'
+): Variants => {
+  const from =
+    direction === 'top' ? { x: 0, y: -20 } :
+    direction === 'bottom' ? { x: 0, y: 20 } :
+    direction === 'left' ? { x: -20, y: 0 } :
+    { x: 20, y: 0 };
+
+  return {
+    hidden: {
+      filter: 'blur(10px)',
+      opacity: 0,
+      x: from.x,
+      y: from.y,
+    },
+    visible: {
+      filter: 'blur(0px)',
+      opacity: 1,
+      x: 0,
+      y: 0,
+      transition: { duration: 0.6, ease: EASE },
+    },
+  };
+};
 
 interface BlurTextProps {
   text: string;
@@ -76,20 +106,7 @@ const BlurText = ({
     },
   };
 
-  const wordVariants = {
-    hidden: {
-      ...getInitialPosition(),
-      filter: 'blur(10px)',
-    },
-    visible: {
-      ...getAnimatePosition(),
-      filter: 'blur(0px)',
-      transition: {
-        duration: 0.6,
-        ease: 'easeOut',
-      },
-    },
-  };
+  const wordVariants: Variants = makeVariants(direction);
 
   return (
     <motion.div
