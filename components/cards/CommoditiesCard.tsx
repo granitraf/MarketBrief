@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Flame } from "lucide-react";
+import { Box } from "lucide-react";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 type Item = { code: string; label: string; price: number | null; changePct: number | null };
 
 export default function CommoditiesCard() {
@@ -15,10 +16,16 @@ export default function CommoditiesCard() {
   );
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[320px]"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 font-semibold">
-          <Flame className="h-5 w-5" /> Commodities
+          <Box className="h-5 w-5" /> Commodities
         </div>
         <div className="text-xs text-zinc-400">{data?.updated ? `Updated ${new Date(data.updated).toLocaleTimeString()}` : ""}</div>
       </div>
@@ -45,7 +52,7 @@ export default function CommoditiesCard() {
           })}
         </div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 

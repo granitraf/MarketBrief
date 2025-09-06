@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query'
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type FGI = { updated: string; value: number | null; label?: string | null; wk?: number | null; mo?: number | null }
 
@@ -34,7 +35,13 @@ export default function FearGreedCard() {
   const angle = value == null ? -90 : angleFromValue(value)
 
   return (
-    <div className="bg-zinc-900 text-zinc-100 rounded-xl p-4 min-h-[260px] shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[320px]"
+    >
       {/* header */}
       <div className="flex items-baseline justify-between">
         <h3 className="font-semibold">Fear &amp; Greed Index</h3>
@@ -108,6 +115,6 @@ export default function FearGreedCard() {
           <span className="font-semibold">Extreme Greed</span>
         </div>
       </div>
-    </div>
+    </MagicBentoCard>
   )
 }

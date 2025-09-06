@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LineChart } from "lucide-react";
 import { formatTwoDecimals } from "@/lib/formatters";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type IndexRow = {
   symbol: string;
@@ -20,7 +21,13 @@ export default function IndicesCard() {
   );
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[320px]"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 font-semibold">
           <LineChart className="h-5 w-5" /> Indices
@@ -47,7 +54,7 @@ export default function IndicesCard() {
           })}
         </div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 

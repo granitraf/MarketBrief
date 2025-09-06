@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type CalItem = {
   kind: 'EARN' | 'FDA';
@@ -20,7 +21,13 @@ function CalCard({ title, items }: { title: string; items: CalItem[] }) {
   const limited = items.slice(0, 10);
   const extra = items.length - limited.length;
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[640px]"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="font-semibold">{title}</div>
       </div>
@@ -51,7 +58,7 @@ function CalCard({ title, items }: { title: string; items: CalItem[] }) {
       {extra > 0 && (
         <div className="mt-2 text-xs text-zinc-500">+ {extra} more this week</div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 

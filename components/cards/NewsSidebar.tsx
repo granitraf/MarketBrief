@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Newspaper, Search } from "lucide-react";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type NewsItem = {
   headline: string;
@@ -27,7 +28,13 @@ export default function NewsSidebar() {
   );
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={true}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 font-semibold">
           <Newspaper className="h-5 w-5" /> News
@@ -71,7 +78,7 @@ export default function NewsSidebar() {
           </div>
         </div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { LineChart } from "lucide-react";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type YObs = { date: string; value: number | null };
 type Yields = { dgs10: YObs[]; dgs2: YObs[] };
@@ -23,7 +24,13 @@ export default function BondsAndRatesCard() {
       : null;
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[320px]"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 font-semibold">
           <LineChart className="h-5 w-5" /> Bonds & Rates
@@ -39,7 +46,7 @@ export default function BondsAndRatesCard() {
           <SpreadRow value={spread} />
         </div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 

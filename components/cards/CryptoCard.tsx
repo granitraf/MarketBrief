@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Bitcoin } from "lucide-react";
+import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type Row = { symbol: string; price: number | null; changePct: number | null };
 
@@ -15,7 +16,13 @@ export default function CryptoCard() {
   );
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-4 shadow">
+    <MagicBentoCard
+      enableStars={false}
+      enableSpotlight={false}
+      enableBorderGlow={true}
+      glowColor="255, 255, 255"
+      className="rounded-xl bg-zinc-900/95 p-4 text-white min-h-[320px]"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 font-semibold">
           <Bitcoin className="h-5 w-5" /> Crypto
@@ -42,7 +49,7 @@ export default function CryptoCard() {
           })}
         </div>
       )}
-    </div>
+    </MagicBentoCard>
   );
 }
 
