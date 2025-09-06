@@ -151,3 +151,63 @@ input[type='search']::-ms-clear {
 .card--border-glow{ --glow-color:255,255,255; /* border:2px solid rgba(255,255,255,.15) !important; */ }
 .card--border-glow:hover{ /* border-color:rgba(255,255,255,.3) !important; */ box-shadow: 0 0 10px rgba(255,255,255,.1), 0 0 20px rgba(255,255,255,.05); }
 .global-spotlight{ position:fixed !important; transform: translate(-50%, -50%) !important; }
+
+/* Scroll Animation Styles */
+html { 
+  scroll-behavior: smooth; 
+}
+
+main { 
+  scroll-snap-type: y proximity; 
+}
+
+.hero-section { 
+  scroll-snap-align: start; 
+  height: 100vh; 
+}
+
+.dashboard-section { 
+  scroll-snap-align: start; 
+  min-height: 100vh; 
+}
+
+/* Light Rays Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-content {
+  animation: fadeInUp 1s ease-out;
+}
+
+/* Light Rays fallback animation */
+@keyframes pulse {
+  0% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}
+
+/* Prevent jittering and ensure smooth rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure WebGL canvas renders smoothly */
+canvas {
+  image-rendering: auto;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+}

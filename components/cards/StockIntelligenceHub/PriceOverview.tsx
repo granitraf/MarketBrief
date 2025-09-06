@@ -109,7 +109,6 @@ export default function PriceOverview() {
       <Metric label="Open" value={formatNumberCompact(quote.data?.o)} />
       <Metric label="Day Low" value={formatNumberCompact(quote.data?.l)} />
       <Metric label="Day High" value={formatNumberCompact(quote.data?.h)} />
-      <Metric label="Volume" value={formatNumberCompact((metrics.data?.metric?.volume as any) ?? null)} />
       <Metric label="Market Cap" value={formatCompactUSD(mktCap ? mktCap * 1_000_000 : null)} />
       <Metric label="EPS (TTM)" value={formatNumberCompact(epsTtm)} />
       <Metric label="Year Low" value={formatNumberCompact((metrics.data?.metric?.['52WeekLow'] as any))} />
