@@ -95,9 +95,8 @@ export default function HeroSection() {
           <img 
             src="/LOGO.png" 
             alt="MarketBrief Logo" 
-            className="w-24 h-24 md:w-96 md:h-48 object-contain"
+            className="w-64 h-auto md:w-96 md:h-44 object-contain"
             style={{ 
-              aspectRatio: '1/1',
               transform: 'translateX(10px)'
             }}
           />
