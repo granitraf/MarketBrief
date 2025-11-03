@@ -14,6 +14,9 @@ export async function fetchFredSeries(seriesId: string, observationStart: string
   url.searchParams.set('api_key', apiKey);
   url.searchParams.set('file_type', 'json');
   url.searchParams.set('observation_start', observationStart);
+  // Fetch recent observations in descending order to get latest values
+  url.searchParams.set('sort_order', 'desc');
+  url.searchParams.set('limit', '10'); // Get last 10 to calculate deltas
 
   const res = await fetch(url.toString(), { cache: 'no-store' });
   if (!res.ok) {

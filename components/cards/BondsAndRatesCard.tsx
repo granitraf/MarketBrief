@@ -57,7 +57,7 @@ function SpreadRow({ value }: { value: number | null }) {
         <span className="ticker-symbol">10Y–2Y Spread</span>
       </div>
       <div className="flex items-center gap-3">
-        <span className="tabular-nums text-sm">{value == null ? "–" : `${value.toFixed(2)}%`}</span>
+        <span className="tabular-nums text-sm">{value == null ? "–" : `${value.toFixed(3)}%`}</span>
       </div>
     </div>
   );
@@ -69,8 +69,11 @@ function getLatestWithDelta(arr?: YObs[]): { value: number | null; delta: number
   if (!arr || arr.length === 0) return null;
   const vals = arr.filter((o) => o.value !== null);
   if (vals.length === 0) return { value: null, delta: null };
-  const last = vals[vals.length - 1].value as number;
-  const prev = vals.length > 1 ? (vals[vals.length - 2].value as number) : last;
+  
+  // Data from FRED comes in descending order (most recent first)
+  // So vals[0] is the latest, vals[1] is the previous
+  const last = vals[0].value as number;
+  const prev = vals.length > 1 ? (vals[1].value as number) : last;
   const delta = last - prev;
   return { value: last, delta };
 }
@@ -84,9 +87,9 @@ function RateRow({ label, subtitle, value, delta }: { label: string; subtitle: s
         <span className="text-xs text-zinc-400">{subtitle}</span>
       </div>
       <div className="flex items-center gap-3">
-        <span className="tabular-nums text-sm">{value == null ? "–" : `${value.toFixed(2)}%`}</span>
+        <span className="tabular-nums text-sm">{value == null ? "–" : `${value.toFixed(3)}%`}</span>
         <span className={(up ? "bg-emerald-900/40 text-emerald-300" : "bg-red-900/40 text-red-300") + " delta-badge"}>
-          {delta == null ? "–" : `${up ? "+" : ""}${delta.toFixed(2)}%`}
+          {delta == null ? "–" : `${up ? "+" : ""}${delta.toFixed(3)}%`}
         </span>
       </div>
     </div>

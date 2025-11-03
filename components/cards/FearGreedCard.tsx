@@ -5,9 +5,12 @@ import { MagicBentoCard } from "@/components/ui/MagicBento";
 
 type FGI = { updated: string; value: number | null; label?: string | null; wk?: number | null; mo?: number | null }
 
-// helper: clamp 0..100 and map to angle [-90, +90]
-const clamp = (n:number, min=0, max=100) => Math.max(min, Math.min(max, n))
-const angleFromValue = (v:number) => -90 + (clamp(v) * 180) / 100
+// utils
+const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max)
+const mapValueToAngle = (value: number | null | undefined, startDeg = -120, endDeg = 120) => {
+  const v = clamp(Number(value ?? 0), 0, 100)
+  return startDeg + (v / 100) * (endDeg - startDeg)
+}
 
 // SVG arc helpers
 function polar(cx:number, cy:number, r:number, deg:number) {
@@ -29,10 +32,10 @@ export default function FearGreedCard() {
     refetchInterval: 30 * 60_000,
   })
 
-  const value = typeof data?.value === 'number' ? clamp(data.value) : null
+  const value = typeof data?.value === 'number' ? clamp(data.value, 0, 100) : null
   const label = data?.label ?? ''
   const updated = data?.updated ? new Date(data.updated) : null
-  const angle = value == null ? -90 : angleFromValue(value)
+  const angle = mapValueToAngle(value ?? 0)
 
   return (
     <MagicBentoCard
@@ -92,20 +95,19 @@ export default function FearGreedCard() {
             return <circle key={i} cx={p1.x} cy={p1.y} r="2" fill="#3f3f46" />
           })}
 
-          {/* needle group (animated via transform) */}
-          <g
-            style={{
-              transformOrigin: '150px 150px',
-              transform: `rotate(${angle}deg)`,
-              transition: 'transform 600ms ease-out',
-            }}
-          >
-            {/* needle */}
-            <line x1="150" y1="150" x2="150" y2="30" stroke="#f87171" strokeWidth="4" strokeLinecap="round" />
-            {/* hub */}
-            <circle cx="150" cy="150" r="7" fill="#ef4444" />
-            <circle cx="150" cy="150" r="3" fill="#1c1917" />
-          </g>
+          {/* needle drawn by computing the endpoint at the desired angle */}
+          {(() => {
+            const end = polar(150, 150, 120, angle)
+            return (
+              <g>
+                {/* needle */}
+                <line x1="150" y1="150" x2={end.x} y2={end.y} stroke="#f87171" strokeWidth="4" strokeLinecap="round" />
+                {/* hub */}
+                <circle cx="150" cy="150" r="7" fill="#ef4444" />
+                <circle cx="150" cy="150" r="3" fill="#1c1917" />
+              </g>
+            )
+          })()}
         </svg>
 
         {/* labels under gauge */}
